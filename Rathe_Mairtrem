@@ -1,0 +1,33 @@
+[MQ2NetBots]
+Stat=1
+Send=1
+Grab=1
+[MQ2Melee]
+downflag1=1
+enrage=0
+facing=1
+holyflag1=1
+holyflag2=1
+holyflag3=1
+holyflag4=1
+holyflag5=1
+holyflag6=1
+infuriate=0
+petassist=1
+petdelay=1
+petmend=50
+petrange=200
+plugin=1
+pothealfast=40
+pothealover=50
+resume=20
+standup=1
+stickrange=75
+downshit1=/if (${Cast.Ready[Cauldron of Countless Goods]} && !${Me.Invis} && !${Me.Casting.ID})   /casting "Cauldron of Countless Goods" item
+holyshit1=/if (${Me.AltAbilityReady[Banestrike]} && ${Target.Distance}<=50) /alt activate 15073
+holyshit2=/if (${Me.PctHPs}<80 && ${Me.AltAbilityReady[Dimensional Instability]}) /alt activate 639
+holyshit3=/if (${Cast.Ready[Manifested Etheric Robe of the Conjuror]} && ${Target.Level}>=(${Me.Level}+2) && ${Target.Distance}<=50 && ${Target.PctHPs}<90) /casting "Manifested Etheric Robe of the Conjuror" Item
+holyshit4=/if (${Cast.Ready[Summon Servant II]} && ${Target.Level}>=(${Me.Level}+2) && ${Target.Distance}<=50 && ${Target.PctHPs}<90) /casting "Summon Servant II" Item
+holyshit5=/if (${Cast.Ready[Summon Minion II]} && ${Target.Level}>=(${Me.Level}+2) && ${Target.Distance}<=50 && ${Target.PctHPs}<90) /casting "Summon Minion II" Item
+holyshit6=/if (${Cast.Ready[Icebound Paradox II]} && ${Target.Level}>=(${Me.Level}+2) && ${Target.Distance}<=50 && ${Target.PctHPs}<90) /casting "Icebound Paradox II" Item
+version=6.020
