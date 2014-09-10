@@ -62,10 +62,7 @@
 #Event ToggleAABuy    "[MQ2] ToggleAABuy"
 #Event TooFar         "Your target is too far away, get closer!"
 #Event WornOff        "#*#Your #1# spell has worn off of #2#."
-#Event  EndMacro      "It will take about 25 more seconds to prepare your camp."
-#Event  Campfire 	  "#*#campfire click#*#"
-#Event  ImHit    	  "#1#to#*#YOU, but #*#"
-#Event  MezBroke      "#1# has been awakened by #2#."
+
 Sub Main
 /echo AutoBot Transforming, hold onto your seatbelt!!!111ONE
 /declare AlertTimer      timer  outer
@@ -182,7 +179,6 @@ Sub Main
 	/squelch /alias /reportmana       /echo ToggleVar Mana Reporting,ReportMana,GeneralStuff,ReportMana,
 	/squelch /alias /reportmanapct    /echo ToggleString ReportMana Percent,ReportManaPct,GeneralStuff,ReportManaPct,
 	/squelch /alias /reportmez        /echo ToggleVar Mezz Reporting,ReportMez,DebuffStuff,ReportMez,
-	/squelch /alias /reportmezbroke   /echo ToggleVar Report Mez breaking,Mezbroke,DebuffStuff,Mezbroke,
 	/squelch /alias /reportpettoys    /echo ToggleVar PetToys Reporting,ReportPetToys,SummonStuff,ReportPetToys,
 	/squelch /alias /reportselfbuffs  /echo ToggleVar Self Buff Reporting,ReportSelfBuffs,SelfBuffStuff,ReportSelfBuffs,
 	/squelch /alias /reportsotw       /echo ToggleVar Spirit of the Wood Reporting,ReportSotW,HealStuff,ReportSotW,
@@ -398,7 +394,11 @@ Sub DoMelee
 /if (!${RDPause}) {
 	/if (${Spawn[${MATarget}].Type.NotEqual[Corpse]} && ${Spawn[${MATarget}].Distance}<${NPCRadius} && ${Spawn[${MATarget}].PctHPs}<${EngageHPs} && ${Spawn[${MATarget}].LineOfSight} && ${UseEpic} && (!${FindItem[${Epic}].Timer} && ${FindItem[${Epic}].ID}) && ${UseEpic}<=${SpawnCount[npc targetable radius ${NPCRadius} zradius 100 noalert 1]} && (${Me.Class.ShortName.Equal[BRD]} || !${Me.Casting.ID})) {
 		/if (${Me.Class.ShortName.Equal[BRD]}) /squelch /twist stop
-		/if (${Me.Casting.ID}) /call DoInterrupt				 
+		/if (${Me.Casting.ID})  {
+			/if (${ReportInterrupts}) /${ChatChannel} Interrupting ${Me.Casting} for DoMelee
+			/call Interrupt
+			/delay 1s !${Me.Casting.ID}
+			}				 
 		/call Cast "${Epic}" item 2s
 		/if (${Me.Class.ShortName.Equal[BRD]} && !${Me.Invis} && !${TwistTimer}) /call SingSongs
 	}
@@ -499,25 +499,17 @@ Sub CheckHP
 		/varset SpamFlag TRUE
 	}
 	/if (${HealFD} && ${Target.State.NotEqual["FEIGN"]} && ${Select[${Target.Class.ShortName},MNK,NEC,SHD]})  {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]CheckHP-Heal FD
-		/call Interrupt
-		/delay 1s !${Me.Casting.ID}
-		}
+			/if (${ReportInterrupts}) /${ChatChannel} Interrupting ${Me.Casting} for CheckHP-FD
+			/call Interrupt
+			/delay 1s !${Me.Casting.ID}
+			}
     /call ${EvaluateFunction}
 	/if (${UseCH} && ${Me.Casting.ID}==${TankHealID} && ${Target.ID}==${Spawn[${MA1}].ID} && ${FastHealID}!=${TankHealID}) {
 		/call CheckPPS
-		/if (${Target.PctHPs}>${TankHealPct} && ${TankTTL}>250 && ${castEndTime}<40)  {
-			/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]CheckHP-EvaluateFunction
-			/call Interrupt
-			/delay 1s !${Me.Casting.ID}
-		}
+		/if (${Target.PctHPs}>${TankHealPct} && ${TankTTL}>250 && ${castEndTime}<40) /call Interrupt
 		/if (${castEndTime}>=${TankTTL}+50) /call DoHeal ${Target.ID} Fast
 	}
-	/if (${Me.Casting.ID} && ${Me.Casting.ID}!=${TankHealID} && ${Me.Casting.ID}!=${DelayedHealID} && ${Me.Casting.ID}!=${DivArbSpellID} && ${Target.PctHPs}>=${CancelPct} && (!${WaitToCancel} || ${castEndTime}<5))  {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]CheckHP-Heal Me
-		/call Interrupt
-		/delay 1s !${Me.Casting.ID}
-		}
+	/if (${Me.Casting.ID} && ${Me.Casting.ID}!=${TankHealID} && ${Me.Casting.ID}!=${DelayedHealID} && ${Me.Casting.ID}!=${DivArbSpellID} && ${Target.PctHPs}>=${CancelPct} && (!${WaitToCancel} || ${castEndTime}<5)) /call Interrupt
 	/if (${HealMeFirst} && ${Me.PctHPs}<=${HealPct} && ${Target.ID}!=${Me.ID}) /call DoHeal ${Me.ID} Fast
 }
 /doevents Dead
@@ -529,16 +521,16 @@ Sub DoDivArb
 	/call Cast "${FranticHeal}" ${FranticGem} 2s
 	/if (${ReportHeals}) /${HealChannel} I've cast ${Spell[${FranticHeal}].RankName} on ${MA1}.
 } else /if ((!${FindItem[Harmony of the Soul].Timer} && ${FindItem[Harmony of the Soul].ID}) || (!${FindItem[Aegis of Superior Divinity].Timer} && ${FindItem[Aegis of Superior Divinity].ID})) {
-	/if (${Me.Casting.ID}) {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]DoDivarb-Shield
+	/if (${Me.Casting.ID})  {
+		/if (${ReportInterrupts}) /${ChatChannel} Interrupting ${Me.Casting} for DoDivArb-Shield
 		/call Interrupt
 		/delay 1s !${Me.Casting.ID}
 		}
 	/if (${FindItem[Harmony of the Soul].ID}) /call Cast "Harmony of the Soul" item 5s
 	/if (${FindItem[Aegis of Superior Divinity].ID}) /call Cast "Aegis of Superior Divinity" item 5s
 } else /if ((${DivArbGem.Equal[alt]} && ${Me.AltAbilityReady[${DivArbSpell}]}) || (${DivArbGem.Equal[item]} && ${FindItem[${DivArbSpell}].TimerReady}) || (!${Select[${DivArbGem},alt,item]} && (${Me.SpellReady[${DivArbSpell}]} || !${DivArbTimer}))) {
-	/if (${Me.Casting.ID} && ${Me.Casting.ID}!=${DivArbSpellID}) {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]DoDivArb-Spell
+	/if (${Me.Casting.ID} && ${Me.Casting.ID}!=${DivArbSpellID})  {
+		/if (${ReportInterrupts}) /${ChatChannel} Interrupting ${Me.Casting} for DoDivArb - Spell
 		/call Interrupt
 		/delay 1s !${Me.Casting.ID}
 		}
@@ -550,7 +542,7 @@ Sub DoDivArb
 
 Sub DoInterrupt
 /if (${Me.Casting.ID}) {
-	/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting}
+	/if (${ReportInterrupts}) /${ChatChannel} Interrupting ${Me.Casting}
 	/call Interrupt
 	/delay 1s !${Me.Casting.ID}
 }
@@ -564,11 +556,7 @@ Sub EvaluateGroup
 	/if ( ${Group.Member[${i}].Type.Equal[Corpse]} ) /goto :NextEvaluateGroup
 	/if (!${RDPause} && ${UseDivArb} && ${Group.Member[${i}].PctHPs}<=${DivArbHPs} && (((${DivArbGem.Equal[alt]} && ${Me.AltAbilityReady[${DivArbSpell}]}) || (${DivArbGem.Equal[item]} && ${FindItem[${DivArbSpell}].TimerReady}) || (!${Select[${DivArbGem},alt,item]} && (${Me.SpellReady[${DivArbSpell}]} || !${DivArbTimer}))) || (!${FindItem[Harmony of the Soul].Timer} && ${FindItem[Harmony of the Soul].ID}) || (!${FindItem[Aegis of Superior Divinity].Timer} && ${FindItem[Aegis of Superior Divinity].ID}))&& ${Spawn[${Group.Member[${i}]}].ID} && ${Spawn[${Group.Member[${i}]}].Distance}<${Spell[Divine Arbitration].MyRange}) /call DoDivArb
 	/if (!${RDPause} && ${UseBDA} && ${Group.Member[${i}].PctHPs}<=${DivArbHPs} && ${Me.AltAbilityReady[Bestow Divine Aura]} && ${Group.Member[${i}].ID}!=${Spawn[${MA1}].ID} && ${Group.Member[${i}].ID}!=${Spawn[${MA2}].ID} && ${Group.Member[${i}].ID}!=${Spawn[${MA3}].ID}) {
-|		/if (${Me.Casting.ID}) {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]EvaluateGroup
-		/call Interrupt
-		/delay 1s !${Me.Casting.ID}
-		}
+|		/if (${Me.Casting.ID}) /call DoInterrupt
 		/target targetable id ${Group.Member[${i}].ID}
 		/delay 1s ${Target.ID}==${Group.Member[${i}].ID}
 		/call Cast "Bestow Divine Aura" alt 5s
@@ -608,11 +596,7 @@ Sub EvaluateGroupNet
 /if (${HealFD}) /varset fd fd
 /if (!${RDPause} && ${UseDivArb} && ${NetWorst.Request[radius${Int[${Spell[Divine Arbitration].MyRange}]} group all hp${DivArbHPs}]} && (((${DivArbGem.Equal[alt]} && ${Me.AltAbilityReady[${DivArbSpell}]}) || (${DivArbGem.Equal[item]} && ${FindItem[${DivArbSpell}].TimerReady}) || (!${Select[${DivArbGem},alt,item]} && (${Me.SpellReady[${DivArbSpell}]} || !${DivArbTimer}))) || (!${FindItem[Harmony of the Soul].Timer} && ${FindItem[Harmony of the Soul].ID}) || (!${FindItem[Aegis of Superior Divinity].Timer} && ${FindItem[Aegis of Superior Divinity].ID}))) /call DoDivArb
 /if (!${RDPause} && ${UseBDA} && ${NetWorst.Request[group all hp${DivArbHPs} self]} && ${Me.AltAbilityReady[Bestow Divine Aura]} && ${NetHeal.ID[1]}!=${Spawn[${MA1}].ID} && ${NetHeal.ID[1]}!=${Spawn[${MA2}].ID} && ${NetHeal.ID[1]}!=${Spawn[${MA3}].ID}) {
-	/if (${Me.Casting.ID}) {
-		/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]EvaluateGroupNet
-		/call Interrupt
-		/delay 1s !${Me.Casting.ID}
-		}
+|	/if (${Me.Casting.ID}) /call DoInterrupt
 	/target targetable id ${NetHeal.ID[1]}
 	/delay 1s ${Target.ID}==${NetHeal.ID[1]}
 	/call Cast "Bestow Divine Aura" alt 5s
@@ -699,7 +683,6 @@ Sub CureMe
 /return
 
 Sub DoHeal(int HealGuy,HealType)
-
 |/if (${Me.Casting.ID} && ${Me.Casting.ID}!=${DivArbSpellID} && ${Me.Casting.ID}!=${GroupHealID}) {
 |	/call DoInterrupt
 |	/delay 2s !${Me.Casting.ID}
@@ -743,7 +726,6 @@ Sub DoSotW
 }
 /varset GroupTotalHPs 0
 /return
-
 
 Sub DoSotWNet
 /if (!${RDPause} && ${NetWorst.Request[pc all group radius${Int[${Spell[${SotWAA}].MyRange}]}]}>1 && ${NetWorst.Average}<${SotWPct} && !${Me.Song[Celestial Regeneration].ID} && !${Me.Song[Celestial Rejuvenation].ID} && !${Me.Song[Ethereal Elixir].ID} && !${Me.Song[Celestial Renewal].ID} && !${Me.Song[Spirit of the Wood].ID} && !${Me.Song[Spirit of the Grove].ID} && !${Me.Song[Ancestral Aid].ID} && !${Me.Song[Paragon of Spirit].ID} && !${Me.Song[Perfection of Spirit].ID}) {
@@ -861,6 +843,7 @@ Sub AssistMA1
 /return
 
 Sub AssistLoop
+/declare i int local
 /if (${UseGroupMA}) {
 	|If we have GroupAssist and group assist is a valid target get it.
 	/if (${Me.GroupAssistTarget.ID} && (${Me.GroupAssistTarget.Type.Equal[NPC]} || ${Me.GroupAssistTarget.Master.Type.Equal[npc]}) && ${Me.GroupAssistTarget.ID}!=${MATarget} && ${Me.GroupAssistTarget.Type.NotEqual[corpse]}) {
@@ -879,8 +862,6 @@ Sub AssistLoop
 	/varset AssistTimer ${AssistDelay}
 	/return
 }
-
-/declare i int local
 /for i 1 to 3
 	/if (${Spawn[${MA${i}} radius 150 zradius 100].ID}) {
 		/if (${Me.CleanName.NotEqual[${MA${i}}]}) /call AssistStuff ${i}
@@ -1204,7 +1185,7 @@ Sub PetStuff
 			/if (!${CheckGroupTimer}) /call CheckGroup
 		 	/if (${Target.ID}!=${Me.Pet.ID}) /squelch /target targetable id ${Me.Pet.ID}
 		 	/delay 1s ${Target.ID}==${Me.Pet.ID}
-		 	/if (${ReportPetBuffs}) /${ChatChannel} [+t+]Buffing [+m+]${Me.Pet.CleanName} [+t+]with [+y+]${PetBuff${i}}
+		 	/if (${ReportPetBuffs}) /${ChatChannel} Buffing ${Me.Pet.CleanName} with ${PetBuff${i}}
 		 	/doevents flush Restricted
 		 	/call Cast "${PetBuff${i}}" ${PetBuffGem${i}} 10s Check4Pad
 		 	/call DoRestrictedEvents ${PetBuffID[${i}]}
@@ -1234,29 +1215,29 @@ Sub SummonStuff
    |I do not have a rod in inventory
    |I do not have something on cursor
    |Summon a rod
-   /if (!${RDPause} && ${Me.Class.ShortName.Equal[MAG]} && !${FindItem[Summoned: Large Modulation Shard].ItemSlot} && !${FindItem[Summoned: Medium Modulation Shard].ItemSlot} && !${FindItem[Summoned: Small Modulation Shard].ItemSlot} && !${FindItem[Want of Phantasmal Transvergence].ItemSlot} &&!${FindItem[Wand of Phantasmal Modulation].ItemSlot} && !${FindItem[Rod of Arcane Transvergence].ItemSlot} && !${FindItem[Rod of Spectral Transvergence].ItemSlot} && !${FindItem[Wand of Temporal Mastery].ItemSlot} && !${FindItem[Rod of Mechamagical Mastery].ItemSlot} && !${FindItem[Rod of Ethereal Transvergence].ItemSlot} && !${FindItem[Rod of Prime Transvergence].ItemSlot} && !${FindItem[Wand of Elemental Transvergence].ItemSlot} && !${FindItem[Rod of Mystical Transvergence].ItemSlot} && !${FindItem[Summoned: Modulating Rod].ItemSlot} && !${Cursor.ID}) {
+   /if (!${RDPause} && ${Me.Class.ShortName.Equal[MAG]} && ${FindItem[Rod of Spectral Transvergence].ID} && !${FindItem[Rod of Ethereal Transvergence].ID} && !${FindItem[Rod of Prime Transvergence].ID} && !${FindItem[Wand of Elemental Transvergence].ID} && !${FindItem[Rod of Mystical Transvergence].ID} && !${FindItem[Summoned: Modulating Rod].ID} && !${Cursor.ID}) {
       /target myself
       /call Cast "${RodSpell}" ${RodGem} 5s Check4Pad
       /delay 2s ${Cursor.ID}
    }
-   
-   |79322 = Summoned: Large Modulation Shard
-   |79321 = Summoned: Medium Modulation Shard
-   |79320 = Summoned: Small Modulation Shard
-   |76503 = Wand of Phantasmal Transvergence
-   |76502 = Wand of Phantasmal Modulation
-   |64951 = Rod of Arcane Transvergence
-   |57264 = Rod of Spectral Transvergence
-   |52888 = Wand of Temporal Mastery
-   |52803 = Rod of Mechamagical Mastery
-   |52709 = Rod of Prime Transvergence
-   |52674 = Wand of Elemental Transvergence   
-   |18745 = Rod of Ethereal Transvergence
-   |6346 = Summoned: Modulating Rod   
    |3426 = Rod of Mystical Transvergence
-
-   /if (${Select[${Cursor.ID},79322,79321,79320,76503,76502,64951,57264,52888,52803,52709,52674,18745,6346,3426]}) /autoinv
-
+   |6346 = Summoned: Modulating Rod
+   |18745 = Rod of Ethereal Transvergence
+   |52674 = Wand of Elemental Transvergence
+   |52709 = Rod of Prime Transvergence
+   |52803 = Rod of Mechamagical Mastery
+   |52888 = Wand of Temporal Mastery
+   |57264 = Rod of Spectral Transvergence
+   |64951 = Rod of Arcane Transvergence
+   |76502 = Wand of Phantasmal Modulation
+   |76503 = Wand of Phantasmal Transvergence
+   |79320 = Summoned: Small Modulation Shard
+   |79321 = Summoned: Medium Modulation Shard
+   |79322 = Summoned: Large Modulation Shard
+   /if (${Select[${Cursor.ID},3426,6346,18745,52674,52709,52803,52817,52888,57264,64951,76502,76503,79320,79321,79322]}) {
+	/autoinv
+   }
+}
 /if (${UseAmmoClicky} && !${RDPause} && !${Me.Invis}) {
         /if (!${FindItem[${AmmoItem}].ID} && ${FindItem[${AmmoClicky}].TimerReady}==0 && ${Me.FreeInventory}>1) {
 		/call Cast "${AmmoClicky}" ${AmmoGem} 7s Check4Pad
@@ -1369,7 +1350,7 @@ Sub CheckBuffs
 			/squelch /target targetable id ${Me.ID}
 		 	/delay 1s ${Target.ID}==${Me.ID}
 		}
-		/if (${ReportSelfBuffs}) /${ChatChannel} [+t+]Buffing myself with [+y+]${Spell[${SelfBuffID[${i}]}].Name}
+		/if (${ReportSelfBuffs}) /${ChatChannel} Buffing myself with ${Spell[${SelfBuffID[${i}]}].Name}
 		/varset SitTimer ${SitDelay}
 		/if (${Me.Class.ShortName.Equal[BRD]} && !${Me.Invis} && !${Select[${SelfBuffGem${i}},item,alt,comb]} && ${Me.Gem[${SelfBuff${i}}]}) {
 			/squelch /twist stop
@@ -1384,11 +1365,7 @@ Sub CheckBuffs
 		} else {
 			/if (${Select[${SelfBuffGem${i}},comb]}) /disc ${SelfBuff${i}}
 		 	/if (!${Select[${SelfBuffGem${i}},comb]}) {
-				/if (${Me.Casting.ID} && ${Me.Class.ShortName.NotEqual[BRD]} && ${Me.Casting.ID}!=${SelfBuffID[${i}]}) {
-					/if (${ReportInterrupts}) /${ChatChannel} [+r+]Interrupting [+y+]${Me.Casting} for [+t+]CheckBuffs
-					/call Interrupt
-					/delay 1s !${Me.Casting.ID}
-					}
+				/if (${Me.Casting.ID} && ${Me.Class.ShortName.NotEqual[BRD]} && ${Me.Casting.ID}!=${SelfBuffID[${i}]}) /call DoInterrupt
 				/if (${Me.Class.ShortName.Equal[BRD]}) /squelch /twist stop
 				/doevents flush Restricted
 		 		/call Cast "${SelfBuff${i}}" ${SelfBuffGem${i}} 30s Check4Pad
@@ -1428,7 +1405,7 @@ Sub AutoSit
 	}
 	/if (${Select[${Cursor.ID},3426,6346,18745,52674,52709,52803,52817,52888,57264,64951,76502,76503,79320,79321,79322,17574]}) {
 	   /if (${Me.FreeInventory}<=1 || ${Select[${Me.Class.ShortName},MNK,WAR,BER,ROG]}) {
-		/docommand /${ChatChannel} I don't have enough free space for this mod rod (or I'm not a caster) so I'm destroying it.
+		/docommand /${ChatChannel} I don't have enough free space for this mod rod (or I'm not a mana-user) so I'm destroying it.
 		/destroy
 	   } else {
 		/autoinv
@@ -1450,8 +1427,8 @@ Sub AutoSit
 		 	/varset SitTimer ${SitDelay}
 		}
 	}
-	/if (${SpawnCount[npc targetable radius ${ASRadius} zradius ${ASZRadius} noalert 1]} && !${Me.Standing} && ${Me.State.NotEqual[FEIGN]}) /stand
-|	/if (${Me.PctMana}==100 || ${Me.PctEndurance}==100) /stand
+|	/if (${SpawnCount[npc targetable radius ${ASRadius} zradius ${ASZRadius} noalert 1]} && !${Me.Standing} && ${Me.State.NotEqual[FEIGN]}) /stand
+	/if (${Me.PctMana}==100 || ${Me.PctEndurance}==100) /stand
 }
 /return
 
@@ -1507,7 +1484,7 @@ Sub DoBuffEvents
 		/delay 1s ${Target.ID}==${TempGuy}
 		/if (${Target.ID}==${TempGuy}) {
 			/if (${DoBuffTells}) /tt ${Spell[${DoBuffID[${TempVar}]}].Name}
-		 	/if (${ReportDoBuffs} && ${Target.ID}) /${ChatChannel} [+t+]Buffing [+m+]${Target.CleanName} [+t+]with [+y+]${Spell[${DoBuffID[${TempVar}]}].Name}
+		 	/if (${ReportDoBuffs} && ${Target.ID}) /${ChatChannel} Buffing ${Target.CleanName} with ${Spell[${DoBuffID[${TempVar}]}].Name}
 		 	/doevents flush Restricted
 		 	/call Cast "${DoBuff${TempVar}}" ${DoBuffGem${TempVar}} 30s Check4Pad
 		 	/call DoRestrictedEvents ${DoBuffID[${TempVar}]}
@@ -2155,7 +2132,7 @@ Sub Event_Camp
 
 Sub Event_Chat(ChatType,Sender,ChatText)
 /if (${ChatType.Equal[tell]} && ${Sender.Left[1].Compare[ ]}<0) /varset Sender ${Sender.Right[-2].Left[-1]}
-/if (${ChatType.Equal[tell]} && ${RelayTells} && (${Spawn[${Sender}].Type.Equal[PC]} || !${Spawn[${Sender}].ID})) /${ChatChannel} [+M+]${Sender} told me [+Y+]${ChatText}
+/if (${ChatType.Equal[tell]} && ${RelayTells} && (${Spawn[${Sender}].Type.Equal[PC]} || !${Spawn[${Sender}].ID})) /${ChatChannel} ${Sender} told me ${ChatText}
 /if (${ChatText.Find[Frantic Heal Now!]} && ${UseFranticHeal}) {
 	/if (${Spawn[${Sender}].ID}==${Spawn[${MA1}].ID}) /call FranticHeal
 }
@@ -2267,27 +2244,12 @@ Sub Event_Faded
 /return
 
 Sub Event_ImHit(Line, MobName)
-	/if (${UseDiscs}) /call DiscStuff 0
-	/if (${DoHolyShit}) /call HolyShit "${MobName}"
-	/if (!${Select[${Me.Class.ShortName},WAR,PAL,SHD]}) /docommand /bc [+r+]I'm being attacked!!
-	/if (${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && !${Melee.Combat}) /killthis
-	/varset SitTimer 10s
-	/doevents flush ImHit
-	/return
-	
-Sub Event_EndMacro
-	/echo You forgot to /end macro, doing so for you.
-	/end
-	/return	
-	
-Sub Event_Campfire
-	/if (!${RDPause} && !${Me.Invis}) /call cast  "Fellowship Registration Insignia" item
+/if (${UseDiscs}) /call DiscStuff 0
+/if (${DoHolyShit}) /call HolyShit "${MobName}"
+/varset SitTimer 10s
+/doevents flush ImHit
+/return
 
-Sub Event_MezBroke(meztext,mezmob,mezbreaker)
-	/if (${Spawn[id ${MATarget}].ID}!=${Spawn[id ${mezmob}].ID} && ${Mezbroke} && ${EQBC.Connected}) /${ChatChannel} [+y+]--> [+m+] ${mezbreaker} [+y+]<-- [+g+]has awakened [+r+]** ${mezmob} **
-	/if (${Spawn[id ${MATarget}].ID}!=${Spawn[id ${mezmob}].ID} && ${Mezbroke} && !${EQBC.Connected}) /${ChatChannel} --> ${mezbreaker} <-- has awakened ** ${mezmob} **
-	/return	
-	
 Sub Event_Invite(Line,Inviter)
 /if (${MasterList.Find[${Inviter}]}) /invite
 /return
@@ -2372,7 +2334,7 @@ Sub Event_MezIt(Line,MobName)
 /return
 
 Sub Event_NeedStuff(Line,Need)
-/if (${ReportEvents} && !${Need.Find[stick]}) /${ChatChannel} [+g+]I am ${Need}
+/if (${ReportEvents} && !${Need.Find[stick]}) /${ChatChannel} I am ${Need}
 /return
 
 Sub Event_NewZone
@@ -2692,7 +2654,6 @@ Sub LoadIni(MyIni,Function)
 /call LoadVar GeneralStuff InvisibilityGem "Put gem# for spells, or item for items" InvisibilityGem "${MyIni}" ${Function} string
 /call LoadVar GeneralStuff CalmSpell "Put the name of your calm spell or item here" CalmSpell "${MyIni}" ${Function} string
 /call LoadVar GeneralStuff CalmGem "Put gem# for spells, or item for items" CalmGem "${MyIni}" ${Function} string
-/call LoadVar GeneralStuff Mezbroke FALSE Mezbroke "${MyIni}" ${Function} bool
 /call LoadVar GeneralStuff MaxMezLvl 93 MaxMezLvl "${MyIni}" ${Function} int
 /call LoadVar GeneralStuff MaxCharmLvl 89 MaxCharmLvl "${MyIni}" ${Function} int
 /call LoadVar GeneralStuff MaxCalmLvl 90 MaxCalmLvl "${MyIni}" ${Function} int
